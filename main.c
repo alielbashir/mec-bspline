@@ -2,25 +2,130 @@
 //       Implement Welzl's algorithm for finding a minimum enclosing circle (MEC)
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
+#include <allegro5/allegro_primitives.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define width 400
+#define height 400
 
+struct nokta{
+    double x;
+    double y;
+}noktalar[10];
+void dosya_oku(){
+
+    FILE *fp = fopen("koordinatlar.txt","r");
+    char satir[10];
+    int i=0;
+    int nokta_sayisi=0;
+    while(!feof(fp)){
+
+        satir[i]=fgetc(fp);
+        if(satir[i]=='\n' || feof(fp)){
+            satir[i]='\0';
+
+            i=-1;
+            char * pch;
+            struct nokta yeni_nokta;
+            pch = strtok (satir," -");
+            yeni_nokta.x=atof(pch);
+            pch = strtok (NULL, " -");
+            yeni_nokta.y=atof(pch);
+            noktalar[nokta_sayisi]=yeni_nokta;
+            nokta_sayisi++;
+        }
+        i++;
+
+    }
+    fclose(fp);
+}
+void koordinat_duzlemini_ciz(){
+    al_draw_line(200, 400, 200, 0, al_map_rgb_f ( 1 , 1 , 1 ), 1);
+    al_draw_line(0, 200, 400, 200, al_map_rgb_f ( 1 , 1 , 1 ), 1);
+}
+void noktalari_ciz(){
+    int i;
+    for (i = 0; i < 5; i++){
+        al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 3, al_map_rgb_f ( 0 , 1 , 0 ));
+    }
+
+}
+void ekran(){
+
+    ALLEGRO_DISPLAY * disp =NULL;//
+
+    if(!al_init ()){
+        al_show_native_message_box(NULL,NULL,NULL,"Failed to initialize allegro",NULL,NULL);
+
+    }
+            disp = al_create_display ( width , height );
+
+    if(!disp){
+        al_show_native_message_box(NULL,NULL,NULL,"Failed to initialize display",NULL,NULL);
+    }
+    al_init_primitives_addon();
+    //vvvvvvvvvvvvvvvvvvv-CIZIM KODU-vvvvvvvvvvvvvvvvvvv
+
+    koordinat_duzlemini_ciz();
+    noktalari_ciz();
+
+    //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
+    al_flip_display();
+    al_rest(5);
+    al_shutdown_primitives_addon();
+    al_destroy_display(disp);
+}
 int main()
 {
-    //This command create a screen
-    ALLEGRO_DISPLAY* display;
 
-    //Allegro Setup Error Message
-    if(!al_init())
-        al_show_native_message_box(NULL,NULL,NULL,"Allegro couldnt initialize",NULL,NULL);
-
-    //Screen Resolution
-    display = al_create_display(100,200);
-
-    //Allegro Screen Creating Error
-    if(!display)
-        al_show_native_message_box(NULL,NULL,NULL,"Couldnt create Screen",NULL,NULL);
-
-    //Screen Rest Time
-    al_rest(2.0);
-
+    dosya_oku();
+    int i;
+    for(i=0;i<5;i++){
+        printf ("%.2f - %.2f \n",noktalar[i].x,noktalar[i].y);
+    }
+    ekran();
     return 0;
 }
+
+//#include <allegro5/allegro.h>
+//#include <allegro5/allegro_primitives.h>
+//
+//int main(void)
+//{
+//    int width = 640, height = 480;
+//    ALLEGRO_DISPLAY *display = NULL;
+//
+//    if (!al_init())
+//        return -1;
+//
+//
+//    display = al_create_display(width, height);
+//
+//    if (!display)
+//        return -1;
+//
+//    al_init_primitives_addon();
+//
+//    if (!al_init_primitives_addon())
+//        return -1;
+//
+//    al_draw_line(0, 50, 300, 100, al_map_rgb(255, 0, 4), 1.0f);
+//    al_draw_filled_triangle ( 35 , 350 , 85 , 375 , 35 , 400 , al_map_rgb_f ( 0 , 1 , 0 ));
+//    al_draw_filled_rectangle ( 240 , 260 , 340 , 340 , al_map_rgba_f ( 0 , 0 , 0.5 , 0.5 ));
+//    al_draw_circle ( 450 , 370 , 30 , al_map_rgb_f ( 1 , 0 ,1 ), 2);
+//    al_draw_line ( 440 , 110 , 460 , 210 , al_map_rgb_f ( 1 , 0 , 0 ), 1);
+//    al_draw_line ( 500 , 220 , 570 , 200 , al_map_rgb_f ( 1 , 1 , 0 ), 1);
+//    al_flip_display();
+//
+//    al_flip_display();
+//
+//
+//    al_rest(13);
+//
+//
+//    al_shutdown_primitives_addon();
+//
+//    al_destroy_display(display);
+//    return 0;
+//}
