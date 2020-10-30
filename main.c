@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define width 400
-#define height 400
+#define genislik 400
+#define uzunluk 400
 
 struct nokta{
     double x;
@@ -40,9 +40,16 @@ void dosya_oku(){
     }
     fclose(fp);
 }
-void koordinat_duzlemini_ciz(){
-    al_draw_line(200, 400, 200, 0, al_map_rgb_f ( 1 , 1 , 1 ), 1);
-    al_draw_line(0, 200, 400, 200, al_map_rgb_f ( 1 , 1 , 1 ), 1);
+void koordinat_eksenlerini_ciz(){
+    int i;
+    al_draw_line(genislik / 2, uzunluk, genislik / 2, 0, al_map_rgb_f (1 , 1 , 1 ), 1);
+    al_draw_line(0, uzunluk / 2, genislik, uzunluk / 2, al_map_rgb_f (1 , 1 , 1 ), 1);
+    // kucuk cizgileri cizen dongu
+    for (i = 0; i < uzunluk; i+=20){
+        al_draw_line(genislik / 2 - 6, i, genislik / 2 + 5, i, al_map_rgb_f (1 , 1 , 1 ), 1 );
+        al_draw_line(i, uzunluk / 2 - 6, i, uzunluk / 2 + 5, al_map_rgb_f (1 , 1 , 1 ), 1);
+
+    }
 }
 void noktalari_ciz(){
     int i;
@@ -59,7 +66,7 @@ void ekran(){
         al_show_native_message_box(NULL,NULL,NULL,"Failed to initialize allegro",NULL,NULL);
 
     }
-            disp = al_create_display ( width , height );
+            disp = al_create_display (genislik , uzunluk );
 
     if(!disp){
         al_show_native_message_box(NULL,NULL,NULL,"Failed to initialize display",NULL,NULL);
@@ -67,7 +74,7 @@ void ekran(){
     al_init_primitives_addon();
     //vvvvvvvvvvvvvvvvvvv-CIZIM KODU-vvvvvvvvvvvvvvvvvvv
 
-    koordinat_duzlemini_ciz();
+    koordinat_eksenlerini_ciz();
     noktalari_ciz();
 
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
@@ -93,14 +100,14 @@ int main()
 //
 //int main(void)
 //{
-//    int width = 640, height = 480;
+//    int genislik = 640, height = 480;
 //    ALLEGRO_DISPLAY *display = NULL;
 //
 //    if (!al_init())
 //        return -1;
 //
 //
-//    display = al_create_display(width, height);
+//    display = al_create_display(genislik, height);
 //
 //    if (!display)
 //        return -1;
