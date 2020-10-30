@@ -1,13 +1,13 @@
-// TODO: Draw 20x20 coordinate system
-//       Implement Welzl's algorithm for finding a minimum enclosing circle (MEC)
+// TODO: Change file input format to read numbers as signed ints
+// TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
+// TODO: Implement Welzl's algorithm for finding a minimum enclosing circle (MEC)
 #include <allegro5/allegro.h>
-#include <allegro5/allegro_native_dialog.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define genislik 400
-#define uzunluk 400
+#define yukseklik 400
 
 struct nokta{
     double x;
@@ -40,21 +40,30 @@ void dosya_oku(){
     }
     fclose(fp);
 }
+void koordinatlari_donustur(){
+    // girilen nokta degerleri, allegronun koordinat sistemine donusturen bir fonksiyon
+    int i;
+    for (i = 0; i < 10; i++){
+        noktalar[i].x += genislik / 2;
+        noktalar[i].y += yukseklik / 2;
+    }
+
+}
 void koordinat_eksenlerini_ciz(){
     int i;
-    al_draw_line(genislik / 2, uzunluk, genislik / 2, 0, al_map_rgb_f (1 , 1 , 1 ), 1);
-    al_draw_line(0, uzunluk / 2, genislik, uzunluk / 2, al_map_rgb_f (1 , 1 , 1 ), 1);
+    al_draw_line(genislik / 2, yukseklik, genislik / 2, 0, al_map_rgb (0 , 0 , 0 ), 1);
+    al_draw_line(0, yukseklik / 2, genislik, yukseklik / 2, al_map_rgb (0 , 0 , 0 ), 1);
     // kucuk cizgileri cizen dongu
-    for (i = 0; i < uzunluk; i+=20){
-        al_draw_line(genislik / 2 - 6, i, genislik / 2 + 5, i, al_map_rgb_f (1 , 1 , 1 ), 1 );
-        al_draw_line(i, uzunluk / 2 - 6, i, uzunluk / 2 + 5, al_map_rgb_f (1 , 1 , 1 ), 1);
+    for (i = 0; i < yukseklik; i+=20){
+        al_draw_line(genislik / 2 - 6, i, genislik / 2 + 5, i, al_map_rgb (0 , 0 , 0 ), 1 );
+        al_draw_line(i, yukseklik / 2 - 6, i, yukseklik / 2 + 5, al_map_rgb (0 , 0 , 0 ), 1);
 
     }
 }
 void noktalari_ciz(){
     int i;
-    for (i = 0; i < 5; i++){
-        al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 3, al_map_rgb_f ( 0 , 1 , 0 ));
+    for (i = 0; i < 10; i++){
+        al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 3, al_map_rgb ( 0 , 0 , 255 ));
     }
 
 }
@@ -63,14 +72,15 @@ void ekran(){
     ALLEGRO_DISPLAY * disp =NULL;//
 
     if(!al_init ()){
-        al_show_native_message_box(NULL,NULL,NULL,"Failed to initialize allegro",NULL,NULL);
+        exit(-1);
 
     }
-            disp = al_create_display (genislik , uzunluk );
+            disp = al_create_display (genislik , yukseklik );
 
     if(!disp){
-        al_show_native_message_box(NULL,NULL,NULL,"Failed to initialize display",NULL,NULL);
+        exit(-1);
     }
+    al_clear_to_color(al_map_rgb(220, 220, 220));
     al_init_primitives_addon();
     //vvvvvvvvvvvvvvvvvvv-CIZIM KODU-vvvvvvvvvvvvvvvvvvv
 
@@ -88,7 +98,7 @@ int main()
 
     dosya_oku();
     int i;
-    for(i=0;i<5;i++){
+    for(i=0;i<10;i++){
         printf ("%.2f - %.2f \n",noktalar[i].x,noktalar[i].y);
     }
     ekran();
