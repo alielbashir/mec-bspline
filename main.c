@@ -14,16 +14,26 @@ typedef struct{
 }Nokta;
 
 Nokta noktalar[10];
+typedef struct{
+    Nokta p; // merkezi
+    double r; // yaricapi
+}Cember;
+
+Cember Welzl(Nokta[], int, Nokta[], int);
+Cember uc_noktali_cember(Nokta, Nokta, Nokta);
+Cember iki_noktali_cember(Nokta, Nokta);
+double mesafe(Nokta, Nokta);
+bool icinde_mi(Nokta, Cember);
 void koordinatlari_donustur(){
     // girilen Nokta degerleri, allegronun koordinat sistemine donusturen bir fonksiyon
     int i;
     for (i = 0; i < 10; i++){
         noktalar[i].x += genislik / 2;
-        noktalar[i].y += yukseklik / 2;
+        noktalar[i].y = yukseklik / 2 - noktalar[i].y;
     }
 
 }
-void dosya_oku(){
+int dosya_oku(){
 
     FILE *fp = fopen("koordinatlar.txt","r");
     char satir[10];
@@ -49,6 +59,7 @@ void dosya_oku(){
 
     }
     fclose(fp);
+    return nokta_sayisi;
 }
 void koordinat_eksenlerini_ciz(){
     int i;
@@ -99,12 +110,12 @@ void ekran(){
 }
 int main()
 {
-    dosya_oku();
-    koordinatlari_donustur();
+    int m = dosya_oku();
     int i;
     for(i=0;i<10;i++){
-        printf ("p%d:{%d,%d} \n",i + 1, noktalar[i].x,noktalar[i].y);
+        printf ("p%d:{%f,%f} \n",i + 1, noktalar[i].x,noktalar[i].y);
     }
+    koordinatlari_donustur();
     ekran();
     return 0;
 }
