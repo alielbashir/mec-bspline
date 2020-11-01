@@ -6,8 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#define genislik 400
-#define yukseklik 400
+#include <time.h>
+#define genislik 800
+#define yukseklik 800
 
 typedef struct{
     double x;
@@ -170,7 +171,7 @@ void ekran(Cember mec){
         exit(-1);
 
     }
-            disp = al_create_display (genislik , yukseklik );
+            disp = al_create_display (genislik , yukseklik);
 
     if(!disp){
         exit(-1);
@@ -195,13 +196,16 @@ int main()
     int i;
     Nokta bosDizi[3];
     for(i=0;i<10;i++){
-        printf ("p%d:{%f,%f} \n",i + 1, noktalar[i].x,noktalar[i].y);
+        printf ("p%d:{%.0f,%.0f} \n",i + 1, noktalar[i].x,noktalar[i].y);
     }
+    // zaman hesaplama
+    clock_t t;
     Cember mec = Welzl(noktalar, m, bosDizi, 0);
+
+    printf("\n");
     printf("x: %f\n", mec.p.x);
     printf("y: %f\n", mec.p.y);
     printf("radius: %f\n", mec.r);
-    printf("\n");
     for (i = 0; i < 10; i++){
         noktalar[i] = koordinati_donustur(noktalar[i]);
     }
