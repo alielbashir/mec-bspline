@@ -8,12 +8,14 @@
 #define genislik 400
 #define yukseklik 400
 
-struct nokta{
-    int x;
-    int y;
-}noktalar[10];
+typedef struct{
+    double x;
+    double y;
+}Nokta;
+
+Nokta noktalar[10];
 void koordinatlari_donustur(){
-    // girilen nokta degerleri, allegronun koordinat sistemine donusturen bir fonksiyon
+    // girilen Nokta degerleri, allegronun koordinat sistemine donusturen bir fonksiyon
     int i;
     for (i = 0; i < 10; i++){
         noktalar[i].x += genislik / 2;
@@ -35,7 +37,7 @@ void dosya_oku(){
 
             i=-1;
             char * pch;
-            struct nokta yeni_nokta;
+            Nokta yeni_nokta;
             pch = strtok (satir," ");
             yeni_nokta.x=atoi(pch);
             pch = strtok (NULL, " ");
@@ -65,6 +67,9 @@ void noktalari_ciz(){
         al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 2.5, al_map_rgb ( 0 , 0 , 255 ));
     }
 
+}
+void meci_ciz(){
+    
 }
 void ekran(){
 
