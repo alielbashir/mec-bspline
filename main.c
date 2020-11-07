@@ -1,5 +1,6 @@
 // TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
 // TODO: Unify language
+// TODO: Clean up code
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
@@ -83,8 +84,6 @@ Nokta deBoor(int k, double x, int t[], Nokta c[], int p){
     return d[p];
 }
 int indisi_bul(double x, int t[], int n){
-    int check = 0;
-    int index = 0;
     for (int i = 0; i < n; i++){
         if (t[i] > x){
             return i - 1;
@@ -102,7 +101,7 @@ void b_splinei_ciz(Nokta noktalar[],int m, int p) {
     double j;
     int k;
     // specify knot length;
-    int lent = m + p + 1;
+    int lent = m + p;
     int t[lent];
     int i = 1;
     int counter = 0;
@@ -303,8 +302,8 @@ void ekran(Cember mec, int m){
     noktalari_ciz(m);
     cizgileri_ciz(m);
     meci_ciz(mec);
-    bezieri_ciz(noktalar, m);
-    b_splinei_ciz(noktalar, m, 3);
+//    bezieri_ciz(noktalar, m);
+    b_splinei_ciz(noktalar, m, 4);
     // 3 for quadratic
 
 
