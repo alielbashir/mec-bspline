@@ -1,4 +1,5 @@
 // TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
+// TOOO: Unify language
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
@@ -209,10 +210,10 @@ void bezieri_ciz(Nokta *P, int n) {
     for (int i = 0; i < n - 2; i++){
         if (i > 0 && i < n - 3)
             piecewise_bezier(mps[i - 1], P[i + 1], mps[i]);
-            // first bezier curve
+        // first bezier curve
         else if (i == 0)
             piecewise_bezier(P[i], P[i + 1], mps[i]);
-            // last bezier curve
+        // last bezier curve
         else
             piecewise_bezier(mps[i - 1], P[i + 1], P[i + 2]);
 
