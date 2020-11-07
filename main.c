@@ -1,5 +1,5 @@
 // TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
-// TOOO: Unify language
+// TODO: Unify language
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
@@ -67,6 +67,55 @@ int dosya_oku(){
     fclose(fp);
     return nokta_sayisi;
 }
+Nokta deBoor(int k, double x, int t[], Nokta c[], int p){
+    Nokta d[p + 1];
+    double alpha;
+    for (int i = 0; i < p + 1; i++){
+        d[i] = c[i + k - p];
+    }
+    for (int r = 1; r < p + 1; r++){
+        for (int j = p; j > r - 1; j--){
+            alpha = (x - t[j + k - p]) / (t[j + 1 + k - r] - t[j + k - p]);
+            d[j].x = (1.0 - alpha) * d[j - 1].x + alpha * d[j].x;
+            d[j].y = (1.0 - alpha) * d[j - 1].y + alpha * d[j].y;
+        }
+    }
+    return d[p];
+}
+int indisi_bul(double x, int t[], int n){
+    int check = 0;
+    int index = 0;
+    for (int i = 0; i < n; i++){
+        if (t[i] > x){
+            if (check == 0){
+                return i - 1;
+            }
+        }
+        else if (t[i] == x){
+            index = i;
+            check++;
+        }
+    }
+    if (check > 0)
+        return index;
+}
+void b_splinei_ciz(Nokta noktalar[]) {
+    int t[] = {0, 0, 0, 1, 2, 3, 3, 4, 4, 5};
+    int lent = 10;
+    Nokta p1 = noktalar[0];
+    Nokta p2;
+    int i;
+    double j;
+    int k;
+    for (i = 0; i < 500; i++){
+        j = i / 100.0;
+        k = indisi_bul(j, t, lent);
+        p2 = deBoor(k, j, t, noktalar, 2);
+        al_draw_line(p1.x, p1.y, p2.x, p2.y, al_map_rgba(0, 0, 255, 255), 1);
+        p1 = p2;
+    }
+}
+
 void koordinat_eksenlerini_ciz(){
     int i;
     al_draw_line(genislik / 2, yukseklik, genislik / 2, 0, al_map_rgb (0 , 0 , 0 ), 1);
@@ -241,6 +290,7 @@ void ekran(Cember mec, int m){
     cizgileri_ciz(m);
     meci_ciz(mec);
     bezieri_ciz(noktalar, m);
+    b_splinei_ciz(noktalar);
 
 
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
