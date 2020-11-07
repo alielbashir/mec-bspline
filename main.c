@@ -35,8 +35,8 @@ Nokta koordinati_donustur(Nokta a){
     // wh is the new max height and width
     a.x *= sf;
     a.y *= sf;
-    a.x = (genislik / 2) + a.x ;
-    a.y = (yukseklik / 2) - a.y;
+    a.x = (genislik / 2.0) + a.x ;
+    a.y = (yukseklik / 2.0) - a.y;
     return a;
 }
 int dosya_oku(){
@@ -87,32 +87,46 @@ int indisi_bul(double x, int t[], int n){
     int index = 0;
     for (int i = 0; i < n; i++){
         if (t[i] > x){
-            if (check == 0){
-                return i - 1;
-            }
+            return i - 1;
         }
         else if (t[i] == x){
-            index = i;
-            check++;
+            return i;
         }
     }
-    if (check > 0)
-        return index;
 }
-void b_splinei_ciz(Nokta noktalar[]) {
-    int t[] = {0, 0, 0, 1, 2, 3, 3, 4, 4, 5};
-    int lent = 10;
+
+void b_splinei_ciz(Nokta noktalar[],int m, int p) {
+
     Nokta p1 = noktalar[0];
     Nokta p2;
-    int i;
     double j;
     int k;
-    for (i = 0; i < 500; i++){
-        j = i / 100.0;
+    // specify knot length;
+    int lent = m + p + 1;
+    int t[lent];
+    int i = 1;
+    int counter = 0;
+    // construct knot vector
+    while (counter < m + p + 1){
+        if (counter < p){
+            t[counter++] = 0;
+            continue;
+        }
+        if (p <= counter && counter < m){
+            t[counter++] = i++;
+            continue;
+        }
+        else
+            t[counter++] = i;
+    }
+
+    for (j = 0; j < t[lent-1]; j+= 0.01){
         k = indisi_bul(j, t, lent);
-        p2 = deBoor(k, j, t, noktalar, 2);
+        p2 = deBoor(k, j, t, noktalar, p - 1);
         al_draw_line(p1.x, p1.y, p2.x, p2.y, al_map_rgba(0, 0, 255, 255), 1);
         p1 = p2;
+        printf("{%.0f,%.0f}\n", p1.x, p1.y);
+
     }
 }
 
@@ -290,7 +304,8 @@ void ekran(Cember mec, int m){
     cizgileri_ciz(m);
     meci_ciz(mec);
     bezieri_ciz(noktalar, m);
-    b_splinei_ciz(noktalar);
+    b_splinei_ciz(noktalar, m, 3);
+    // 3 for quadratic
 
 
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
