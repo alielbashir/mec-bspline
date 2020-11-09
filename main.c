@@ -1,18 +1,22 @@
+// TODO: make b-spline interpolate with the points instead of curve around
 // TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
 // TODO: Unify language
 // TODO: Clean up code
+// TODO: Fix scale factor to accomodate different resolutions properly
+// TODO: add shuffle to
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <math.h>
 #define genislik 800
 #define yukseklik 800
 // new width and height
 #define wh 40
 // scale factor for points conversion
-#define sf genislik/wh
+#define sf (float)genislik/wh
 
 
 typedef struct{
@@ -85,12 +89,10 @@ Nokta deBoor(int k, double x, int t[], Nokta c[], int p){
 }
 int indisi_bul(double x, int t[], int n){
     for (int i = 0; i < n; i++){
-        if (t[i] > x){
+        if (t[i] > x)
             return i - 1;
-        }
-        else if (t[i] == x){
+        else if (t[i] == x)
             return i;
-        }
     }
 }
 
@@ -124,8 +126,6 @@ void b_splinei_ciz(Nokta noktalar[],int m, int p) {
         p2 = deBoor(k, j, t, noktalar, p - 1);
         al_draw_line(p1.x, p1.y, p2.x, p2.y, al_map_rgba(0, 0, 255, 255), 1);
         p1 = p2;
-        printf("{%.0f,%.0f}\n", p1.x, p1.y);
-
     }
 }
 
@@ -156,6 +156,7 @@ void cizgileri_ciz(int m){
 // P = set of points, m = number of points in P
 // S = subset of P with points on boundary, n = number of points in S
 Cember Welzl(Nokta P[], int m, Nokta S[], int n){
+    // TODO: add random shuffling before start and test timing
     Cember mec;
     if (m == 0 && n == 2){
         mec = iki_noktali_cember(S[0], S[1]);
@@ -254,17 +255,20 @@ void piecewise_bezier(Nokta a, Nokta b, Nokta c) {
         p1 = p2;
     }
 }
+
 Nokta midpoint(Nokta a, Nokta b){
     Nokta p;
     p.x = (a.x + b.x) / 2;
     p.y = (a.y + b.y) / 2;
     return p;
 }
+
 void bezieri_ciz(Nokta *P, int n) {
     Nokta mps[n-3];
     for (int i = 0; i < n - 3; i++){
         mps[i] = midpoint(P[i + 1], P[i + 2]);
     }
+
     // midpoints check
     for (int i = 0; i < n - 3; i++){
         al_draw_filled_circle(mps[i].x, mps[i].y, 1, al_map_rgb ( 0 , 0 , 0 ));
@@ -303,13 +307,23 @@ void ekran(Cember mec, int m){
     cizgileri_ciz(m);
     meci_ciz(mec);
 //    bezieri_ciz(noktalar, m);
-    b_splinei_ciz(noktalar, m, 4);
+    int i;
+    int loops = 1; // number of times to execute function. higher = more accurate time
+    // time complexity
+    clock_t start = clock(), diff;
+    for (i = 0; i < loops; i++){
+        b_splinei_ciz(noktalar, m, 3);
+    }
+    diff = clock() - start;
+    double time_taken = ((double)diff) / CLOCKS_PER_SEC;
+    printf("\nb_spline() time taken %f seconds\n", time_taken / loops);
+
     // 3 for quadratic
 
 
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
     al_flip_display();
-    al_rest(5);
+    al_rest(10);
     al_shutdown_primitives_addon();
     al_destroy_display(disp);
 }
@@ -318,23 +332,33 @@ int main()
     int m = dosya_oku();
     int i;
     Nokta bosDizi[3];
-    for(i=0;i<m;i++){
+    for(i = 0;i < m;i++){
         printf ("p%d:{%.0f,%.0f} \n",i + 1, noktalar[i].x,noktalar[i].y);
     }
-    // TODO: add timer and conduct tests for time complexity (zaman karmasikligi)
-    for (i = 0; i < m; i++){
-        noktalar[i] = koordinati_donustur(noktalar[i]);
+
+    Cember mec;
+    int loops = 10000; // number of times to execute function. higher = more accurate time
+    // time complexity
+    clock_t start = clock(), diff;
+    for (i = 0; i < loops; i++){
+        mec = Welzl(noktalar, m, bosDizi, 0);
     }
-    for(i=0;i<m;i++){
-        printf ("p%d:{%.0f,%.0f} \n",i + 1, noktalar[i].x,noktalar[i].y);
-    }
-    Cember mec = Welzl(noktalar, m, bosDizi, 0);
-    // FIXME: shows coordinate values after transformation. find way to detransform for display purposes
-    printf("\n");
+    diff = clock() - start;
+    double time_taken = ((double)diff) / CLOCKS_PER_SEC;
+    printf("\nWelzl() time taken %f seconds\n", time_taken / loops);
     printf("x: %f\n", mec.p.x);
     printf("y: %f\n", mec.p.y);
     printf("radius: %f\n", mec.r);
 
+    for (i = 0; i < m; i++){
+        noktalar[i] = koordinati_donustur(noktalar[i]);
+    }
+    // FIXME: shows coordinate values after transformation. find way to detransform for display purposes
+    mec.p = koordinati_donustur(mec.p);
+    mec.r *= sf;
+
     ekran(mec, m);
+
+
     return 0;
 }
