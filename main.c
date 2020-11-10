@@ -2,7 +2,6 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_ttf.h>
-#include <allegro5/allegro_font.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,12 +10,12 @@
 
 #define PATH "koordinatlar.txt"
 // istenilen pencere boyutlari
-// UYARI: ayni sayi degillerse cember duzgun bir sekilde cizilmiyor
+// UYARI: ayni sayi degillerse cember duzgun bir sekilde cizilmeyecek
 // kare pencere olmasi gerek
 #define genislik 800
 #define yukseklik 800
 // istenilen kare sayisi. 60 ise -30'den 30'a giden x ve y eksenler cizilir
-#define wh 40
+#define wh 60
 // scale factor for points conversion
 #define sfx (float)genislik/wh
 #define sfy (float)yukseklik/wh
@@ -26,8 +25,10 @@ typedef struct {
     double x;
     double y;
 } Nokta;
-
-Nokta *noktalar;
+// welzl icin karistirilacak nokta dizisi
+Nokta *noktalar1;
+// b-spline ve diger islemlerde kullanilacak, sirayi degistirilmeyecek nokta dizisi
+Nokta *noktalar2;
 typedef struct {
     Nokta p; // merkezi
     double r; // yaricapi
@@ -55,57 +56,61 @@ void b_splinei_ciz(Nokta *, int, int);
 
 void koordinat_eksenlerini_ciz();
 
-char* ntos(Nokta);
+char *ntos(Nokta);
 
-void noktalari_ciz(int);
+void noktalari_ciz(int, ALLEGRO_FONT *);
 
 void cizgileri_ciz(int);
 
 void ekran(Cember, int);
 
-void meci_ciz(Cember);
+void meci_ciz(Cember, ALLEGRO_FONT *);
 
 void bezieri_ciz(Nokta *, int);
 
 Nokta midpoint(Nokta, Nokta);
 
-Nokta quadratic_bezier(Nokta a, Nokta b, Nokta c, double t);
+Nokta quadratic_bezier(Nokta, Nokta, Nokta, double);
 
-void piecewise_bezier(Nokta a, Nokta b, Nokta c);
+void piecewise_bezier(Nokta, Nokta, Nokta);
 
 void karistir(Nokta *, int);
 
 int main() {
     int m = dosyayi_oku(PATH);
-    karistir(noktalar, m);
     int i;
     Nokta bosDizi[3];
     for (i = 0; i < m; i++) {
-        printf("p%d:{%.0f,%.0f} \n", i + 1, noktalar[i].x, noktalar[i].y);
+        printf("p%d:{%.0f,%.0f}\n", i + 1, noktalar1[i].x, noktalar1[i].y);
     }
 
     Cember mec;
-    int loops = 10000; // number of times to execute function. higher = more accurate time
+    // welzl icin kullanilacak nokta dizisi karistirilir
+    karistir(noktalar1, m);
+    int donmeler = 10000; // welzl fonksiyon kac kere calistirilacagini belirten degisken;
+    // calisma zamani hesaplamak icin yuksek sayi olmasi gerekli
     // time complexity
     clock_t start = clock(), diff;
-    for (i = 0; i < loops; i++) {
-        mec = Welzl(noktalar, m, bosDizi, 0);
+    for (i = 0; i < donmeler; i++) {
+        mec = Welzl(noktalar1, m, bosDizi, 0);
     }
     diff = clock() - start;
     double time_taken = ((double) diff) / CLOCKS_PER_SEC;
-    printf("\nWelzl() time taken %f seconds\n", time_taken / loops);
+    printf("\nWelzl() time taken %f seconds\n", time_taken / donmeler);
     printf("x: %f\n", mec.p.x);
     printf("y: %f\n", mec.p.y);
     printf("radius: %f\n", mec.r);
 
     for (i = 0; i < m; i++) {
-        noktalar[i] = koordinati_donustur(noktalar[i], 1);
+        noktalar1[i] = koordinati_donustur(noktalar1[i], 1);
+        noktalar2[i] = koordinati_donustur(noktalar2[i], 1);
     }
     mec.p = koordinati_donustur(mec.p, 1);
     mec.r *= (sfx + sfy) / 2;
 
     ekran(mec, m);
-    free(noktalar);
+    free(noktalar1);
+    free(noktalar2);
 
 
     return 0;
@@ -118,7 +123,7 @@ Cember Welzl(Nokta *P, int m, Nokta *S, int n) {
     //
     // P: nokta dizisi
     // m: P nokta sayisi
-    // S: Kenarda olacak noktalar dizisi
+    // S: Kenarda olacak noktalar1 dizisi
     // n: S nokta sayisi
     Cember mec;
     if (m == 0 && n == 2) {
@@ -207,7 +212,7 @@ Nokta deBoor(int k, double x, const int *t, Nokta *c, int p) {
     // x: 0'dan en buyuk knot'a giden sayi
     // k: x, icinde bulunan knot'un indisi
     // t: knot vektoru
-    // c: kontrol noktalar dizisi
+    // c: kontrol noktalar1 dizisi
     // p: olusacak polinomun derecesi. 2 ise quadratic, 3 ise cubic vs.
     Nokta d[p + 1];
     double alpha;
@@ -226,17 +231,17 @@ Nokta deBoor(int k, double x, const int *t, Nokta *c, int p) {
 
 Nokta koordinati_donustur(Nokta a, int flag) {
     // girilen Nokta degeri, allegronun koordinat sistemine donusturen bir fonksiyon
-    // flag: 0 ise normaldan allegroya, 1 ise allegrodan normal koordinat sistemine donustur
-    if (flag){
+    // flag: 0 ise normaldan allegroya, 1 ise allegrodan normal koordinat sistemine donusturur
+    if (flag) {
         a.x *= sfx;
         a.y *= sfy;
         a.x = (genislik / 2.0) + a.x;
         a.y = (yukseklik / 2.0) - a.y;
-    }else{
+    } else {
+        a.x = a.x - (genislik / 2.0);
+        a.y = (yukseklik / 2.0) - a.y;
         a.x /= sfx;
         a.y /= sfy;
-        a.x = (genislik / 2.0) + a.x;
-        a.y = (yukseklik / 2.0) - a.y;
     }
     return a;
 
@@ -244,12 +249,17 @@ Nokta koordinati_donustur(Nokta a, int flag) {
 
 int dosyayi_oku(const char *adres) {
     // verilen dosya adresinden x ve y degerleri okuyan fonksiyon
-    noktalar = malloc(sizeof(Nokta) * 2);
-    if (!noktalar){
-        perror("\nBellekte yer ayirilamadi.\n");
+    noktalar1 = malloc(sizeof(Nokta));
+    noktalar2 = malloc(sizeof(Nokta));
+    if (!noktalar1 || !noktalar2) {
+        fprintf(stderr, "\nBellekte yer ayirilamadi.\n");
         exit(-1);
     }
     FILE *fp = fopen(adres, "r");
+    if (!fp) {
+        fprintf(stderr, "%s adresine erisilemedi\n", adres);
+        exit(-2);
+    }
     char satir[10];
     int i = 0;
     int nokta_sayisi = 0;
@@ -267,13 +277,16 @@ int dosyayi_oku(const char *adres) {
             pch = strtok(NULL, " ");
             yeni_nokta.y = atoi(pch);
             nokta_sayisi++;
-            noktalar = realloc(noktalar, sizeof(Nokta) * nokta_sayisi);
-            if (!noktalar){
-                perror("\nrealloc() hata verdi. Bellekte yer yok\n");
-                free(noktalar);
-                exit(-2);
+            noktalar1 = realloc(noktalar1, sizeof(Nokta) * nokta_sayisi);
+            noktalar2 = realloc(noktalar2, sizeof(Nokta) * nokta_sayisi);
+            if (!noktalar1 || !noktalar2) {
+                fprintf(stderr, "\nrealloc() hata verdi. Bellekte yer yok\n");
+                free(noktalar1);
+                free(noktalar2);
+                exit(-3);
             }
-            noktalar[nokta_sayisi - 1] = yeni_nokta;
+            noktalar1[nokta_sayisi - 1] = yeni_nokta;
+            noktalar2[nokta_sayisi - 1] = yeni_nokta;
         }
         i++;
     }
@@ -321,7 +334,7 @@ void b_splinei_ciz(Nokta *P, int m, int p) {
         } else
             t[counter++] = i;
     }
-    // b-spline egrinin hassasiyeti. Ne kadar buyuk ise o kadar noktalar hesaplanir.
+    // b-spline egrinin hassasiyeti. Ne kadar buyuk ise o kadar noktalar1 hesaplanir.
     double acc = 100;
     for (i = 0; i < t[lent - 1] * acc; i++) {
         j = i / acc;
@@ -355,7 +368,7 @@ void koordinat_eksenlerini_ciz() {
     }
 }
 
-char* ntos(Nokta a){
+char *ntos(Nokta a) {
     // a noktasi, stringe donduren fonksiyon
     Nokta b;
     b = koordinati_donustur(a, 0);
@@ -364,19 +377,19 @@ char* ntos(Nokta a){
     return str;
 }
 
-void noktalari_ciz(int m) {
+void noktalari_ciz(int m, ALLEGRO_FONT *font) {
     for (int i = 0; i < m; i++) {
-        al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 4,
-                              al_map_rgb(0, (double)(i+1)/m * 255, (double)(i+1)/m * 255));
-        ALLEGRO_FONT *font = al_load_font("Roboto-Black.ttf", 10, 0);
-        al_draw_text(font, al_map_rgb(25, 25, 25), noktalar[i].x, noktalar[i].y,
-                     ALLEGRO_ALIGN_LEFT, ntos(noktalar[i]));
+        al_draw_filled_circle(noktalar1[i].x, noktalar1[i].y, 4,
+                              al_map_rgb(0, (double) (i + 1) / m * 255, (double) (i + 1) / m * 255));
+        al_draw_text(font, al_map_rgb(25, 25, 25), noktalar1[i].x, noktalar1[i].y,
+                     ALLEGRO_ALIGN_LEFT, ntos(noktalar1[i]));
     }
 }
 
 void cizgileri_ciz(int m) {
     for (int i = 0; i < m - 1; i++) {
-        al_draw_line(noktalar[i].x, noktalar[i].y, noktalar[i + 1].x, noktalar[i + 1].y, al_map_rgba(0, 0, 0, 62), 1);
+        al_draw_line(noktalar2[i].x, noktalar2[i].y, noktalar2[i + 1].x, noktalar2[i + 1].y, al_map_rgba(0, 0, 0, 62),
+                     1);
     }
 }
 
@@ -400,16 +413,17 @@ void ekran(Cember mec, int m) {
     al_init_primitives_addon();
     al_init_font_addon();
     al_init_ttf_addon();
+    ALLEGRO_FONT *font = al_load_font("ArchivoNarrow-Regular.ttf", 10, 0);
     //vvvvvvvvvvvvvvvvvvv-CIZIM KODU-vvvvvvvvvvvvvvvvvvv
 
     koordinat_eksenlerini_ciz();
-    noktalari_ciz(m);
+    noktalari_ciz(m, font);
     cizgileri_ciz(m);
-    meci_ciz(mec);
-//    bezieri_ciz(noktalar, m);
+    meci_ciz(mec, font);
+    // bezieri_ciz(noktalar2, m);
     // time complexity
     clock_t start = clock(), diff;
-    b_splinei_ciz(noktalar, m, 3);
+    b_splinei_ciz(noktalar2, m, 3);
     diff = clock() - start;
     double time_taken = ((double) diff) / CLOCKS_PER_SEC;
     printf("\nb_spline() time taken %f seconds\n", time_taken);
@@ -419,14 +433,18 @@ void ekran(Cember mec, int m) {
 
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
     al_flip_display();
-    al_rest(3);
+    al_rest(5);
     al_shutdown_font_addon();
     al_shutdown_primitives_addon();
     al_destroy_display(disp);
 }
 
-void meci_ciz(Cember mec) {
+void meci_ciz(Cember mec, ALLEGRO_FONT *font) {
     al_draw_circle(mec.p.x, mec.p.y, mec.r, al_map_rgb(0, 0, 255), 1);
+    al_draw_filled_circle(mec.p.x, mec.p.y, 4, al_map_rgb(255, 0, 0));
+    al_draw_text(font, al_map_rgb(25, 25, 25), mec.p.x, mec.p.y,
+                 ALLEGRO_ALIGN_LEFT, ntos(mec.p));
+    al_draw_line(mec.p.x, mec.p.y, mec.p.x + mec.r, mec.p.y, al_map_rgb(160, 0, 160), 2);
 }
 
 void bezieri_ciz(Nokta *P, int n) {
@@ -494,7 +512,7 @@ void karistir(Nokta *P, int n) {
     if (n > 1) {
         int i;
         for (i = n - 1; i > 0; i--) {
-            int j = ((double)rand()) / RAND_MAX * (i + 1);
+            int j = ((double) rand()) / RAND_MAX * (i + 1);
             Nokta t = P[j];
             P[j] = P[i];
             P[i] = t;
