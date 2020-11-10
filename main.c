@@ -1,6 +1,8 @@
 // TODO: make b-spline interpolate with the points instead of curve around
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_ttf.h>
+#include <allegro5/allegro_font.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,12 +10,16 @@
 #include <math.h>
 
 #define PATH "koordinatlar.txt"
-#define genislik 700
-#define yukseklik 700
-// new width and height
-#define wh 60
+// istenilen pencere boyutlari
+// UYARI: ayni sayi degillerse cember duzgun bir sekilde cizilmiyor
+// kare pencere olmasi gerek
+#define genislik 800
+#define yukseklik 800
+// istenilen kare sayisi. 60 ise -30'den 30'a giden x ve y eksenler cizilir
+#define wh 40
 // scale factor for points conversion
-#define sf (float)genislik/wh
+#define sfx (float)genislik/wh
+#define sfy (float)yukseklik/wh
 
 
 typedef struct {
@@ -37,7 +43,7 @@ double mesafe(Nokta, Nokta);
 
 bool icinde_mi(Nokta, Cember);
 
-Nokta koordinati_donustur(Nokta);
+Nokta koordinati_donustur(Nokta, int);
 
 int dosyayi_oku(const char *);
 
@@ -48,6 +54,8 @@ int indisi_bul(double, const int *, int);
 void b_splinei_ciz(Nokta *, int, int);
 
 void koordinat_eksenlerini_ciz();
+
+char* ntos(Nokta);
 
 void noktalari_ciz(int);
 
@@ -65,10 +73,11 @@ Nokta quadratic_bezier(Nokta a, Nokta b, Nokta c, double t);
 
 void piecewise_bezier(Nokta a, Nokta b, Nokta c);
 
-void shuffle(Nokta *, int);
+void karistir(Nokta *, int);
 
 int main() {
     int m = dosyayi_oku(PATH);
+    karistir(noktalar, m);
     int i;
     Nokta bosDizi[3];
     for (i = 0; i < m; i++) {
@@ -79,7 +88,6 @@ int main() {
     int loops = 10000; // number of times to execute function. higher = more accurate time
     // time complexity
     clock_t start = clock(), diff;
-//    shuffle(noktalar, m);
     for (i = 0; i < loops; i++) {
         mec = Welzl(noktalar, m, bosDizi, 0);
     }
@@ -91,10 +99,10 @@ int main() {
     printf("radius: %f\n", mec.r);
 
     for (i = 0; i < m; i++) {
-        noktalar[i] = koordinati_donustur(noktalar[i]);
+        noktalar[i] = koordinati_donustur(noktalar[i], 1);
     }
-    mec.p = koordinati_donustur(mec.p);
-    mec.r *= sf;
+    mec.p = koordinati_donustur(mec.p, 1);
+    mec.r *= (sfx + sfy) / 2;
 
     ekran(mec, m);
     free(noktalar);
@@ -105,7 +113,6 @@ int main() {
 
 
 Cember Welzl(Nokta *P, int m, Nokta *S, int n) {
-    // TODO: add random shuffling before start and test timing
     // Welzl algoritmasiyla calisan, en kucuk, her noktayi iceren
     // cemberini donduren rekursif fonksiyon
     //
@@ -217,13 +224,22 @@ Nokta deBoor(int k, double x, const int *t, Nokta *c, int p) {
     return d[p];
 }
 
-Nokta koordinati_donustur(Nokta a) {
+Nokta koordinati_donustur(Nokta a, int flag) {
     // girilen Nokta degeri, allegronun koordinat sistemine donusturen bir fonksiyon
-    a.x *= sf;
-    a.y *= sf;
-    a.x = (genislik / 2.0) + a.x;
-    a.y = (yukseklik / 2.0) - a.y;
+    // flag: 0 ise normaldan allegroya, 1 ise allegrodan normal koordinat sistemine donustur
+    if (flag){
+        a.x *= sfx;
+        a.y *= sfy;
+        a.x = (genislik / 2.0) + a.x;
+        a.y = (yukseklik / 2.0) - a.y;
+    }else{
+        a.x /= sfx;
+        a.y /= sfy;
+        a.x = (genislik / 2.0) + a.x;
+        a.y = (yukseklik / 2.0) - a.y;
+    }
     return a;
+
 }
 
 int dosyayi_oku(const char *adres) {
@@ -321,19 +337,40 @@ void koordinat_eksenlerini_ciz() {
     al_draw_line(genislik / 2.0, yukseklik, genislik / 2.0, 0, al_map_rgb(0, 0, 0), 1);
     al_draw_line(0, yukseklik / 2.0, genislik, yukseklik / 2.0, al_map_rgb(0, 0, 0), 1);
     // kucuk cizgileri cizen dongu
-    for (i = 0; i < yukseklik; i += sf) {
+    for (i = 0; i < yukseklik; i += sfy) {
         // kucuk cizgiler
-        al_draw_line(genislik / 2.0 - 6, i, genislik / 2.0 + 5, i, al_map_rgb(0, 0, 0), 1);
+//        al_draw_line(genislik / 2.0 - 6, i, genislik / 2.0 + 5, i, al_map_rgb(0, 0, 0), 1);
         al_draw_line(i, yukseklik / 2.0 - 6, i, yukseklik / 2.0 + 5, al_map_rgb(0, 0, 0), 1);
         // buyuk hafif cizgiler
-        al_draw_line(0, i, genislik, i, al_map_rgba(0, 0, 0, 30), 1);
+//        al_draw_line(0, i, genislik, i, al_map_rgba(0, 0, 0, 30), 1);
         al_draw_line(i, 0, i, yukseklik, al_map_rgba(0, 0, 0, 30), 1);
     }
+    for (i = 0; i < genislik; i += sfx) {
+        // kucuk cizgiler
+        al_draw_line(genislik / 2.0 - 6, i, genislik / 2.0 + 5, i, al_map_rgb(0, 0, 0), 1);
+//        al_draw_line(i, yukseklik / 2.0 - 6, i, yukseklik / 2.0 + 5, al_map_rgb(0, 0, 0), 1);
+        // buyuk hafif cizgiler
+        al_draw_line(0, i, genislik, i, al_map_rgba(0, 0, 0, 30), 1);
+//        al_draw_line(i, 0, i, yukseklik, al_map_rgba(0, 0, 0, 30), 1);
+    }
+}
+
+char* ntos(Nokta a){
+    // a noktasi, stringe donduren fonksiyon
+    Nokta b;
+    b = koordinati_donustur(a, 0);
+    static char str[16];
+    sprintf(str, "(%.2f, %.2f)", b.x, b.y);
+    return str;
 }
 
 void noktalari_ciz(int m) {
     for (int i = 0; i < m; i++) {
-        al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 4, al_map_rgb(0, i * 25.5, i * 25.5));
+        al_draw_filled_circle(noktalar[i].x, noktalar[i].y, 4,
+                              al_map_rgb(0, (double)(i+1)/m * 255, (double)(i+1)/m * 255));
+        ALLEGRO_FONT *font = al_load_font("Roboto-Black.ttf", 10, 0);
+        al_draw_text(font, al_map_rgb(25, 25, 25), noktalar[i].x, noktalar[i].y,
+                     ALLEGRO_ALIGN_LEFT, ntos(noktalar[i]));
     }
 }
 
@@ -361,6 +398,8 @@ void ekran(Cember mec, int m) {
     }
     al_clear_to_color(al_map_rgb(220, 220, 220));
     al_init_primitives_addon();
+    al_init_font_addon();
+    al_init_ttf_addon();
     //vvvvvvvvvvvvvvvvvvv-CIZIM KODU-vvvvvvvvvvvvvvvvvvv
 
     koordinat_eksenlerini_ciz();
@@ -381,6 +420,7 @@ void ekran(Cember mec, int m) {
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
     al_flip_display();
     al_rest(3);
+    al_shutdown_font_addon();
     al_shutdown_primitives_addon();
     al_destroy_display(disp);
 }
@@ -446,16 +486,18 @@ void piecewise_bezier(Nokta a, Nokta b, Nokta c) {
     }
 }
 
-void shuffle(Nokta *array, int n) {
+void karistir(Nokta *P, int n) {
+    // P: karistirilacak dizinin ilk elemani
+    // n: P eleman sayisi
     srand(time(0));
 
     if (n > 1) {
         int i;
         for (i = n - 1; i > 0; i--) {
-            int j = (unsigned int) (rand() * (i + 1));
-            Nokta t = array[j];
-            array[j] = array[i];
-            array[i] = t;
+            int j = ((double)rand()) / RAND_MAX * (i + 1);
+            Nokta t = P[j];
+            P[j] = P[i];
+            P[i] = t;
         }
     }
 }
