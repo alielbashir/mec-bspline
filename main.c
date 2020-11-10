@@ -1,8 +1,4 @@
 // TODO: make b-spline interpolate with the points instead of curve around
-// TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
-// TODO: Unify language
-// TODO: Clean up code
-// TODO: Fix scale factor to accomodate different resolutions properly
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
@@ -12,10 +8,10 @@
 #include <math.h>
 
 #define PATH "koordinatlar.txt"
-#define genislik 800
-#define yukseklik 800
+#define genislik 700
+#define yukseklik 700
 // new width and height
-#define wh 40
+#define wh 60
 // scale factor for points conversion
 #define sf (float)genislik/wh
 
@@ -25,7 +21,7 @@ typedef struct {
     double y;
 } Nokta;
 
-Nokta noktalar[100];
+Nokta *noktalar;
 typedef struct {
     Nokta p; // merkezi
     double r; // yaricapi
@@ -69,6 +65,8 @@ Nokta quadratic_bezier(Nokta a, Nokta b, Nokta c, double t);
 
 void piecewise_bezier(Nokta a, Nokta b, Nokta c);
 
+void shuffle(Nokta *, int);
+
 int main() {
     int m = dosyayi_oku(PATH);
     int i;
@@ -81,6 +79,7 @@ int main() {
     int loops = 10000; // number of times to execute function. higher = more accurate time
     // time complexity
     clock_t start = clock(), diff;
+//    shuffle(noktalar, m);
     for (i = 0; i < loops; i++) {
         mec = Welzl(noktalar, m, bosDizi, 0);
     }
@@ -98,6 +97,7 @@ int main() {
     mec.r *= sf;
 
     ekran(mec, m);
+    free(noktalar);
 
 
     return 0;
@@ -228,6 +228,11 @@ Nokta koordinati_donustur(Nokta a) {
 
 int dosyayi_oku(const char *adres) {
     // verilen dosya adresinden x ve y degerleri okuyan fonksiyon
+    noktalar = malloc(sizeof(Nokta) * 2);
+    if (!noktalar){
+        perror("\nBellekte yer ayirilamadi.\n");
+        exit(-1);
+    }
     FILE *fp = fopen(adres, "r");
     char satir[10];
     int i = 0;
@@ -245,11 +250,16 @@ int dosyayi_oku(const char *adres) {
             yeni_nokta.x = atoi(pch);
             pch = strtok(NULL, " ");
             yeni_nokta.y = atoi(pch);
-            noktalar[nokta_sayisi] = yeni_nokta;
             nokta_sayisi++;
+            noktalar = realloc(noktalar, sizeof(Nokta) * nokta_sayisi);
+            if (!noktalar){
+                perror("\nrealloc() hata verdi. Bellekte yer yok\n");
+                free(noktalar);
+                exit(-2);
+            }
+            noktalar[nokta_sayisi - 1] = yeni_nokta;
         }
         i++;
-
     }
     fclose(fp);
     return nokta_sayisi;
@@ -307,7 +317,7 @@ void b_splinei_ciz(Nokta *P, int m, int p) {
 }
 
 void koordinat_eksenlerini_ciz() {
-    int i;
+    double i;
     al_draw_line(genislik / 2.0, yukseklik, genislik / 2.0, 0, al_map_rgb(0, 0, 0), 1);
     al_draw_line(0, yukseklik / 2.0, genislik, yukseklik / 2.0, al_map_rgb(0, 0, 0), 1);
     // kucuk cizgileri cizen dongu
@@ -357,7 +367,7 @@ void ekran(Cember mec, int m) {
     noktalari_ciz(m);
     cizgileri_ciz(m);
     meci_ciz(mec);
-    bezieri_ciz(noktalar, m);
+//    bezieri_ciz(noktalar, m);
     // time complexity
     clock_t start = clock(), diff;
     b_splinei_ciz(noktalar, m, 3);
@@ -433,5 +443,19 @@ void piecewise_bezier(Nokta a, Nokta b, Nokta c) {
         p2 = quadratic_bezier(a, b, c, j);
         al_draw_line(p1.x, p1.y, p2.x, p2.y, al_map_rgb(255, 0, 0), 1);
         p1 = p2;
+    }
+}
+
+void shuffle(Nokta *array, int n) {
+    srand(time(0));
+
+    if (n > 1) {
+        int i;
+        for (i = n - 1; i > 0; i--) {
+            int j = (unsigned int) (rand() * (i + 1));
+            Nokta t = array[j];
+            array[j] = array[i];
+            array[i] = t;
+        }
     }
 }
