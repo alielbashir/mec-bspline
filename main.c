@@ -1,4 +1,3 @@
-// TODO: make b-spline interpolate with the points instead of curve around
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_ttf.h>
@@ -75,6 +74,10 @@ Nokta quadratic_bezier(Nokta, Nokta, Nokta, double);
 void piecewise_bezier(Nokta, Nokta, Nokta);
 
 void karistir(Nokta *, int);
+
+void degistir(Nokta *, int);
+
+Nokta degistir2(Nokta, Nokta, Nokta);
 
 int main() {
     int m = dosyayi_oku(PATH);
@@ -321,20 +324,20 @@ void b_splinei_ciz(Nokta *P, int m, int p) {
     int lent = m + p; // number of knots
     int t[lent];
     int i = 1;
-    int counter = 0;
-    // construct knot vector
-    while (counter < m + p + 1) {
-        if (counter < p) {
-            t[counter++] = 0;
+    int sayac = 0;
+    // uniform knot vectoru cizilir
+    while (sayac < m + p + 1) {
+        if (sayac < p) {
+            t[sayac++] = 0;
             continue;
         }
-        if (p <= counter && counter < m) {
-            t[counter++] = i++;
+        if (p <= sayac && sayac < m) {
+            t[sayac++] = i++;
             continue;
         } else
-            t[counter++] = i;
+            t[sayac++] = i;
     }
-    // b-spline egrinin hassasiyeti. Ne kadar buyuk ise o kadar noktalar1 hesaplanir.
+    // b-spline egrinin hassasiyeti. Ne kadar buyuk ise o kadar noktalar icin hesaplama yapilir.
     double acc = 100;
     for (i = 0; i < t[lent - 1] * acc; i++) {
         j = i / acc;
@@ -393,6 +396,26 @@ void cizgileri_ciz(int m) {
     }
 }
 
+void kopyala(Nokta *P1, int m, Nokta *P2) {
+    for (int i = 0; i < m; i++) {
+        P2[i].x = P1[i].x;
+        P2[i].y = P1[i].y;
+    }
+}
+
+void degistir(Nokta *P, int m) {
+    Nokta *tempP;
+    tempP = malloc(sizeof(Nokta) * m);
+    kopyala(P, m, tempP);
+    for (int i = 1; i < m - 1; i++) {
+        P[i].x = tempP[i].x * 2.0 -
+                 ((midpoint(tempP[i - 1], tempP[i]).x + midpoint(tempP[i], tempP[i + 1]).x) / 2.0);
+        P[i].y = tempP[i].y * 2.0 -
+                 ((midpoint(tempP[i - 1], tempP[i]).y + midpoint(tempP[i], tempP[i + 1]).y) / 2.0);
+    }
+    free(tempP);
+}
+
 void ekran(Cember mec, int m) {
     // mec: hesaplanmis olan minimum enclosing circle
     // merkez noktasi ve radiusu iceren struct olarak alinir
@@ -419,16 +442,17 @@ void ekran(Cember mec, int m) {
     koordinat_eksenlerini_ciz();
     noktalari_ciz(m, font);
     cizgileri_ciz(m);
+
     meci_ciz(mec, font);
-    // bezieri_ciz(noktalar2, m);
+//    bezieri_ciz(noktalar2, m);
     // time complexity
+    degistir(noktalar2, m);
     clock_t start = clock(), diff;
     b_splinei_ciz(noktalar2, m, 3);
     diff = clock() - start;
     double time_taken = ((double) diff) / CLOCKS_PER_SEC;
     printf("\nb_spline() time taken %f seconds\n", time_taken);
 
-    // 3 for quadratic
 
 
     //^^^^^^^^^^^^^^^^^^^-CIZIM KODU-^^^^^^^^^^^^^^^^^^^
@@ -447,6 +471,7 @@ void meci_ciz(Cember mec, ALLEGRO_FONT *font) {
     al_draw_line(mec.p.x, mec.p.y, mec.p.x + mec.r, mec.p.y, al_map_rgb(160, 0, 160), 2);
 }
 
+
 void bezieri_ciz(Nokta *P, int n) {
     // P: nokta dizisi
     // n: nokta sayisi
@@ -457,26 +482,38 @@ void bezieri_ciz(Nokta *P, int n) {
 
     // midpoints check
     for (int i = 0; i < n - 3; i++) {
-        al_draw_filled_circle(mps[i].x, mps[i].y, 1, al_map_rgb(0, 0, 0));
+        al_draw_filled_circle(mps[i].x, mps[i].y, 2, al_map_rgb(0, 0, 0));
     }
+    Nokta temp;
     for (int i = 0; i < n - 2; i++) {
-        if (i > 0 && i < n - 3)
-            piecewise_bezier(mps[i - 1], P[i + 1], mps[i]);
+        if (i > 0 && i < n - 3) {
+            temp = degistir2(mps[i - 1], P[i + 1], mps[i]);
+            printf("%d. A(%.2f, %.2f) B(%.2f, %.2f) C(%.2f, %.2f)\n", i, mps[i - 1].x, mps[i - 1].y, temp.x, temp.y,
+                   mps[i].x, mps[i].y);
+            piecewise_bezier(mps[i - 1], degistir2(mps[i - 1], P[i + 1], mps[i]), mps[i]);
+        }
             // first bezier curve
-        else if (i == 0)
-            piecewise_bezier(P[i], P[i + 1], mps[i]);
+        else if (i == 0) {
+            temp = degistir2(P[i], P[i + 1], mps[i]);
+            printf("%d. A(%.2f, %.2f) B(%.2f, %.2f) C(%.2f, %.2f)\n", i, P[i].x, P[i].y, temp.x, temp.y,
+                   mps[i].x, mps[i].y);
+            piecewise_bezier(P[i], temp, mps[i]);
+        }
             // last bezier curve
-        else
-            piecewise_bezier(mps[i - 1], P[i + 1], P[i + 2]);
-
+        else {
+            temp = degistir2(mps[i - 1], P[i + 1], P[i + 2]);
+            printf("%d. A(%.2f, %.2f) B(%.2f, %.2f) C(%.2f, %.2f)\n", i, mps[i - 1].x, mps[i - 1].y, temp.x, temp.y,
+                   P[i + 2].x, P[i + 2].y);
+            piecewise_bezier(mps[i - 1], temp, P[i + 2]);
+        }
     }
 }
 
 Nokta midpoint(Nokta a, Nokta b) {
     // a ve b ortasindaki noktayi donduren fonksiyon
     Nokta p;
-    p.x = (a.x + b.x) / 2;
-    p.y = (a.y + b.y) / 2;
+    p.x = (a.x + b.x) / 2.0;
+    p.y = (a.y + b.y) / 2.0;
     return p;
 }
 
@@ -495,7 +532,7 @@ void piecewise_bezier(Nokta a, Nokta b, Nokta c) {
     Nokta p1 = a;
     Nokta p2;
     double j;
-    int acc = 10;
+    int acc = 1000;
     for (int i = 0; i <= acc; i++) {
         j = (double) i / acc;
         p2 = quadratic_bezier(a, b, c, j);
@@ -518,4 +555,11 @@ void karistir(Nokta *P, int n) {
             P[i] = t;
         }
     }
+}
+
+Nokta degistir2(Nokta a, Nokta b, Nokta c) {
+    Nokta p;
+    p.x = b.x * 2.0 - (a.x + c.x) / 2.0;
+    p.y = b.y * 2.0 - (a.y + c.y) / 2.0;
+    return p;
 }
