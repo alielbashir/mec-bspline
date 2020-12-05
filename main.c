@@ -1,9 +1,3 @@
-// TODO: make b-spline interpolate with the points instead of curve around
-// TODO: Make noktalar dynamic according to the number of points in koordinatlar.txt
-// TODO: Unify language
-// TODO: Clean up code
-// TODO: Fix scale factor to accomodate different resolutions properly
-// TODO: add shuffle to
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
@@ -156,7 +150,6 @@ void cizgileri_ciz(int m){
 // P = set of points, m = number of points in P
 // S = subset of P with points on boundary, n = number of points in S
 Cember Welzl(Nokta P[], int m, Nokta S[], int n){
-    // TODO: add random shuffling before start and test timing
     Cember mec;
     if (m == 0 && n == 2){
         mec = iki_noktali_cember(S[0], S[1]);
