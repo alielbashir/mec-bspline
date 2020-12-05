@@ -118,8 +118,6 @@ int main() {
 
     return 0;
 }
-
-
 Cember Welzl(Nokta *P, int m, Nokta *S, int n) {
     // Welzl algoritmasiyla calisan, en kucuk, her noktayi iceren
     // cemberini donduren rekursif fonksiyon
