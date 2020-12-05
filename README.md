@@ -1,4 +1,4 @@
-# programlama-lab-1-1
+# Programlama Lab 1 proje 1
 2020-2021 
 Bilgisayar Mühendisliği
 Programlama Laboratuvarı 1
